@@ -1,18 +1,19 @@
-global                                                                                                                                                                                  
-    log 127.0.0.1   local0                                                                                                                                                              
-    log 127.0.0.1   local1 notice                                                                                                                                                       
-    debug                                                                                                                                                                               
-    stats timeout 30s                                                                                                                                                                   
-    maxconn 1024                                                                                                                                                                        
-                                                                                                                                                                                        
-defaults                                                                                                                                                                                
-    log global                                                                                                                                                                          
-    option  httplog                                                                                                                                                                     
-    option  dontlognull                                                                                                                                                                 
-    mode http                                                                                                                                                                           
-    timeout connect 5000                                                                                                                                                                
-    timeout client  50000                                                                                                                                                               
-    timeout server  50000                                                                                                                                                               
+{{ $hostname:=plugin "hostname" }}
+global
+    log 127.0.0.1   local0
+    log 127.0.0.1   local1 notice
+    debug
+    stats timeout 30s
+    maxconn 1024
+
+defaults
+    log global
+    option  httplog
+    option  dontlognull
+    mode http
+    timeout connect 5000
+    timeout client  50000
+    timeout server  50000
 
 listen stats 
     bind *:1936
@@ -20,24 +21,24 @@ listen stats
     stats uri /
     stats hide-version
     stats auth someuser:password
-                                                                                                                                                                                        
-{{with node "raspberrypi"}}{{range $port:=.Services | toJSON | plugin "ports" "empty" | parseJSON}}                                                                                     
-frontend in-{{$port}}                                                                                                                                                                   
-    bind *:{{$port}}                                                                                                                                                                    
-                                                                                                                                                                                        
-    {{with node "raspberrypi"}}# Define hosts from {{.Node.Node}}{{range .Services | toJSON | plugin "nodeServices" $port | parseJSON}}                                                 
-    acl app_{{.}}_{{$port}} hdr(host) -i {{.}}.service.consul{{end}}{{end}}                                                                                                             
-                                                                                                                                                                                        
-    {{with node "raspberrypi"}}## figure out which one to use from {{.Node.Node}}{{range .Services | toJSON | plugin "nodeServices" $port | parseJSON}}                                 
-    use_backend {{.}}_backend_{{$port}} if app_{{.}}_{{$port}}{{end}}{{end}}                                                                                                            
-{{end}}{{end}}                                                                                                                                                                          
-                                                                                                                                                                                        
-{{with node "raspberrypi"}}{{range $port:=.Services | toJSON | plugin "ports" "empty" | parseJSON}}                                                                                     
-{{with node "raspberrypi"}}# Define backend from {{.Node.Node}} for port: {{$port}}{{range $serviceName:=.Services | toJSON | plugin "nodeServices" $port | parseJSON}}                 
-backend {{$serviceName}}_backend_{{$port}}                                                                                                                                              
-    balance roundrobin                                                                                                                                                                  
-    option forwardfor                                                                                                                                                                   
-    {{- with node "raspberrypi"}}{{- range $i,$a:=.Services | toJSON | plugin "filterServicePort" $port | plugin "filterServiceName" $serviceName | parseJSON}}                              
-    server host{{$i}} {{.Address}}:{{.Port}}                                                                                                                                            
-    {{- end}}{{- end}}                                                                                                                                                                  
-{{end}}{{end}}{{end}}{{end}}                                                                                                                                                            
+
+{{with node $hostname}}{{range $port:=.Services | toJSON | plugin "ports" "empty" | parseJSON}}
+frontend in-{{$port}}
+    bind *:{{$port}}
+
+    {{with node $hostname}}# Define hosts from {{.Node.Node}}{{range .Services | toJSON | plugin "nodeServices" $port | parseJSON}}
+    acl app_{{.}}_{{$port}} hdr(host) -i {{.}}.service.consul{{end}}{{end}}
+
+    {{with node $hostname}}## figure out which one to use from {{.Node.Node}}{{range .Services | toJSON | plugin "nodeServices" $port | parseJSON}}
+    use_backend {{.}}_backend_{{$port}} if app_{{.}}_{{$port}}{{end}}{{end}}
+{{end}}{{end}}
+
+{{with node $hostname}}{{range $port:=.Services | toJSON | plugin "ports" "empty" | parseJSON}}
+{{with node $hostname}}# Define backend from {{.Node.Node}} for port: {{$port}}{{range $serviceName:=.Services | toJSON | plugin "nodeServices" $port | parseJSON}}
+backend {{$serviceName}}_backend_{{$port}}
+    balance roundrobin
+    option forwardfor
+    {{- with node $hostname}}{{- range $i,$a:=.Services | toJSON | plugin "filterServicePort" $port | plugin "filterServiceName" $serviceName | parseJSON}}
+    server host{{$i}} {{.Address}}:{{.Port}}
+    {{- end}}{{- end}}
+{{end}}{{end}}{{end}}{{end}}
