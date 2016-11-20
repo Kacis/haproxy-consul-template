@@ -1,0 +1,6 @@
+#!/bin/sh
+
+serviceName=$1
+data=$2
+
+echo $data | jq --arg serviceName "$serviceName" -r '[.[] | if .Service == $serviceName then . else empty end]'

@@ -1,0 +1,5 @@
+#!/bin/sh
+
+data=$2
+
+echo $data | jq -r '[.[] | .ID[.ID | if rindex(":") == null then empty else rindex(":")+1 end:]]  | unique'

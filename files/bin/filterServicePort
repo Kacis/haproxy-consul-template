@@ -1,0 +1,6 @@
+#!/bin/sh
+
+port=$1
+data=$2
+
+echo $data | jq --arg port "$port" -r '[.[] | if .ID[.ID | if rindex(":") == null then empty else rindex(":")+1 end:] == $port then . else empty end]'

@@ -1,0 +1,6 @@
+#!/bin/sh
+
+port=$1
+data=$2
+
+echo $data | jq --arg port "$port" -r '[foreach .[] as $item ([]; if $item.ID[$item.ID | rindex(":")+1:] == $port then $item.Service else empty end)] | unique'
